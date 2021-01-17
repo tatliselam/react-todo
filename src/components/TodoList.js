@@ -1,40 +1,136 @@
-
-  import React from 'react'
-  class TodoList extends React.Component{
-    constructor(props){
-      super (props);
-  this.state = {
-  tasks:[
-      {
-        title:'get a shopping cart',
-        completed: false,
-        id: 123456789
-      },
-      {
-        title:'Buy milk',
-        completed: false,
-        id: 54545454
-      }
-  ],
-  newTask:''
-  } 
-    
-  this.handleInput=this.handleInput.bind(this);
-  this.handleClick=this.handleClick.bind(this);
+import React from 'react';
+import TodoItems from './TodoItems';
+import TodoService  from '../services/todo.service';
+class TodoList extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      tasks: [],
+      newTask: '',
     }
-
-  handleInput(e){
-
+    this.handleInput = this.handleInput.bind(this);
+    this.handleClick = this.handleClick.bind(this);
+    this.removeItem = this.removeItem.bind(this);
+    this.editItems = this.editItems.bind(this);
+   this.handleEnter= this.handleEnter.bind(this);
   }
-  handleClick(e){
+
+  handleInput(e) {
+    this.setState({
+      newTask: e.target.value
+    })
   }
+  handleClick(e) {
+    if(this.state.newTask.trim()){
+
+      fetch('http://localhost:8080/api/todoitems', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: this.state.newTask
+        }),
+        headers: {
+          'Content-type': 'application/json; charset=UTF-8',
+        },
+      })
+        .then((response) => response.json())
+        .then((json) => {
+          const newTasks = [...this.state.tasks, json] 
+          this.setState({
+            tasks: newTasks
+          })
+        });
+      // Empty the newTask property in the state
+      this.setState({
+        newTask: ''
+      })
+    } else {
+      alert('Please enter a value')
+    }
+  }
+
+  handleEnter(e) {
+    if(e.key==='Enter'){
+
+      fetch('http://localhost:8080/api/todoitems', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: this.state.newTask
+        }),
+        headers: {
+          'Content-type': 'application/json; charset=UTF-8',
+        },
+      })
+        .then((response) => response.json())
+        .then((json) => {
+          const newTasks = [...this.state.tasks, json] 
+          this.setState({
+            tasks: newTasks
+          })
+        });
+      // Empty the newTask property in the state
+      this.setState({
+        newTask: ''
+      })
+    } 
+  }
+  removeItem(id) {
+    fetch('http://localhost:8080/api/todoitems/' + id, {
+      method: 'DELETE',
+    }).then(() => {
+      const filteredTasks = this.state.tasks.filter(task => {
+        return task.id !== id;
+      })
+      this.setState({
+        tasks: filteredTasks
+      })
+    });
+  }
+
+  editItems(id, value){
+    fetch('http://localhost:8080/api/todoitems/' + id, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: value
+        }),
+        headers: {
+          'Content-type': 'application/json; charset=UTF-8',
+        }
+    }).then(response => response.json())
+    .then(() => {
+      const tasks = this.state.tasks;
+      tasks.map(task => {
+        if( task.id == id){
+          task.title = value
+        }
+      })
+      this.setState({tasks: tasks})
+    })
+  }
+
+  componentDidMount() {
+  TodoService.getAll().then((res) => this.setState({tasks:res.data}))
+  }
+
   render() {
-    return(
-      <form>  
-        <input type="text"/>
-        <button type="button" >add</button>
-      </form>
+    console.log(this.state.tasks)
+    return (
+      <div>
+        <form>
+          <input type="text" onInput={this.handleInput} value={this.state.newTask} onKeyPress={this.handleEnter}/>
+          <button type="button" onClick={this.handleClick}>Add</button>
+        </form>
+        <ul>
+
+         
+          <TodoItems editItems = {this.editItems} tasks={this.state.tasks} foo="bar" removeItem={this.removeItem}/>
+        </ul>
+      </div>
     )
   }
+
+  componentDidUpdate() {
+    console.log(this.state)
   }
+}
+
 export default TodoList;
